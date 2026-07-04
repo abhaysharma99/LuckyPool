@@ -7,6 +7,7 @@ import {
   FeaturesBento,
   ProtocolSection,
   EarnSection,
+  DepositSection,
   FAQ,
 } from "../components";
 
@@ -26,6 +27,7 @@ export default function Home() {
       <div id="features" className="scroll-mt-8"><FeaturesBento /></div>
       <div id="protocol" className="scroll-mt-8"><ProtocolSection /></div>
       <div id="earn" className="scroll-mt-8"><EarnSection /></div>
+      <DepositSection />
       <div
         id="faq"
         className="scroll-mt-8"

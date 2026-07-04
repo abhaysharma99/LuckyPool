@@ -4,14 +4,88 @@ import {
   Box, Container, Heading, Text, Button, HStack, VStack, Flex, Input,
 } from "@chakra-ui/react";
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { connectWallet, getWalletAddress } from "../lib/wallet";
+import { deposit as depositTx, getPoolState, isContractConfigured, stroopsToUsdc } from "../lib/luckyPool";
 
 const MotionBox = motion(Box);
+
+// Target APY until Blend integration ships — see docs/plan.md step 6.
+const TARGET_APY = 0.068;
+
+const QUICK_AMOUNTS = ["10", "50", "100", "500"];
 
 export function DepositSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
+
+  const configured = isContractConfigured();
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [amount, setAmount] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [prizePool, setPrizePool] = useState<number | null>(null);
+
+  useEffect(() => {
+    getWalletAddress().then((addr) => addr && setWalletAddress(addr));
+  }, []);
+
+  useEffect(() => {
+    if (!configured) return;
+    getPoolState()
+      .then((state) => setPrizePool(stroopsToUsdc(state.prizePool)))
+      .catch(() => {});
+  }, [configured]);
+
+  const numericAmount = parseFloat(amount) || 0;
+  const estTickets = Math.floor(numericAmount);
+  const estWeeklyYield = (numericAmount * TARGET_APY) / 52;
+
+  const handleConnect = async () => {
+    setError(null);
+    try {
+      const addr = await connectWallet();
+      setWalletAddress(addr);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to connect wallet");
+    }
+  };
+
+  const handleDeposit = async () => {
+    if (!walletAddress) {
+      await handleConnect();
+      return;
+    }
+    if (numericAmount <= 0) {
+      setError("Enter an amount greater than 0");
+      return;
+    }
+
+    setPending(true);
+    setError(null);
+    setTxHash(null);
+    try {
+      const hash = await depositTx(walletAddress, numericAmount);
+      setTxHash(hash);
+      setAmount("");
+      const state = await getPoolState();
+      setPrizePool(stroopsToUsdc(state.prizePool));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Deposit failed");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const buttonLabel = !walletAddress
+    ? "Connect Wallet to Deposit"
+    : !configured
+      ? "Contract Not Deployed Yet"
+      : pending
+        ? "Depositing…"
+        : `Deposit ${amount || "0"} USDC`;
 
   return (
     <Box
@@ -77,9 +151,16 @@ export function DepositSection() {
               p={{ base: 6, md: 8 }}
             >
               <VStack spacing={6} align="stretch">
-                <Text fontWeight="black" color="#000000" fontSize="lg" textTransform="uppercase" letterSpacing="wider">
-                  Deposit USDC
-                </Text>
+                <Flex justify="space-between" align="center">
+                  <Text fontWeight="black" color="#000000" fontSize="lg" textTransform="uppercase" letterSpacing="wider">
+                    Deposit USDC
+                  </Text>
+                  {walletAddress && (
+                    <Text fontSize="xs" fontWeight="700" color="#3D7A29" fontFamily="mono">
+                      {walletAddress.slice(0, 4)}…{walletAddress.slice(-4)}
+                    </Text>
+                  )}
+                </Flex>
 
                 <VStack align="flex-start" spacing={2}>
                   <Text fontSize="xs" fontWeight="700" color="#666666" textTransform="uppercase" letterSpacing="0.1em">Amount</Text>
@@ -89,6 +170,11 @@ export function DepositSection() {
                     </Box>
                     <Input
                       placeholder="0.00"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
                       bg="white"
                       border="1px solid"
                       borderColor="#000000"
@@ -101,10 +187,11 @@ export function DepositSection() {
                     />
                   </HStack>
                   <HStack spacing={2} pt={1}>
-                    {["10", "50", "100", "500"].map((amt) => (
+                    {QUICK_AMOUNTS.map((amt) => (
                       <Box
                         key={amt}
                         as="button"
+                        onClick={() => setAmount(amt)}
                         px={3} py={1}
                         fontSize="xs"
                         fontWeight="700"
@@ -123,9 +210,14 @@ export function DepositSection() {
                 <Box bg="#F1F5EE" border="1px solid" borderColor="#000000" p={4}>
                   <VStack spacing={2.5} align="stretch">
                     {[
-                      { label: "Your tickets this week", val: "1,240" },
-                      { label: "Est. weekly yield", val: "~$0.82 USDC" },
-                      { label: "Current prize pool", val: "$12,847" },
+                      { label: "Your tickets this week", val: estTickets.toLocaleString() },
+                      { label: "Est. weekly yield", val: `~$${estWeeklyYield.toFixed(2)} USDC` },
+                      {
+                        label: "Current prize pool",
+                        val: prizePool !== null
+                          ? `$${prizePool.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : configured ? "Loading…" : "Testnet pending",
+                      },
                     ].map(({ label, val }) => (
                       <Flex key={label} justify="space-between">
                         <Text fontSize="sm" color="#666666" fontWeight="500">{label}</Text>
@@ -135,9 +227,28 @@ export function DepositSection() {
                   </VStack>
                 </Box>
 
-                <Button variant="primary" size="lg" w="full" rightIcon={<ArrowRight size={16} />}>
-                  Connect Wallet to Deposit
+                <Button
+                  variant="primary"
+                  size="lg"
+                  w="full"
+                  rightIcon={<ArrowRight size={16} />}
+                  onClick={handleDeposit}
+                  isDisabled={pending || (!!walletAddress && !configured)}
+                  isLoading={pending}
+                >
+                  {buttonLabel}
                 </Button>
+
+                {error && (
+                  <Text fontSize="xs" color="#B3261E" textAlign="center" fontWeight="700">
+                    {error}
+                  </Text>
+                )}
+                {txHash && (
+                  <Text fontSize="xs" color="#3D7A29" textAlign="center" fontWeight="700" wordBreak="break-all">
+                    Deposited — tx {txHash.slice(0, 10)}…
+                  </Text>
+                )}
 
                 <Text fontSize="xs" color="#666666" textAlign="center" fontWeight="600">
                   Your principal is always withdrawable. Only yield enters the prize pool.

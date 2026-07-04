@@ -4,21 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 import { Logo } from "../../components/ui/Logo";
 import { connectWallet, disconnectWallet, getWalletAddress } from "../../lib/wallet";
+import { useLuckyPoolAccount, type LuckyPoolAccountData } from "../../lib/useLuckyPoolAccount";
+import { deposit as depositTx, withdraw as withdrawTx, stroopsToUsdc } from "../../lib/luckyPool";
 
 const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 const HARD = "8px 8px 0 #15300c";
 const HARD_SM = "5px 5px 0 #15300c";
-
-const DEPOSIT = 500;
-const PRIZE_POOL = 12847;
-const TICKETS = 500;
-
-const WINNERS = [
-  { name: "Amara K.", amount: 240, when: "2 days ago", tickets: 800 },
-  { name: "David M.", amount: 95,  when: "1 week ago",  tickets: 300 },
-  { name: "Priya S.", amount: 510, when: "2 weeks ago", tickets: 1200 },
-  { name: "James O.", amount: 180, when: "3 weeks ago", tickets: 600 },
-];
 
 const YIELD_HISTORY = [
   { date: "Jun 13", earned: 0.48 },
@@ -27,13 +18,6 @@ const YIELD_HISTORY = [
   { date: "May 23", earned: 0.53 },
   { date: "May 16", earned: 0.49 },
   { date: "May 09", earned: 0.44 },
-];
-
-const TX_HISTORY = [
-  { type: "Deposit", amount: "+$500.00", date: "Jun 1, 2026",  status: "Confirmed" },
-  { type: "Yield",   amount: "+$0.65",   date: "Jun 13, 2026", status: "Accrued" },
-  { type: "Yield",   amount: "+$0.51",   date: "Jun 6, 2026",  status: "Accrued" },
-  { type: "Yield",   amount: "+$0.48",   date: "May 30, 2026", status: "Accrued" },
 ];
 
 function useCounter(target: number, ms = 1800) {
@@ -85,10 +69,40 @@ function StatCard({ label, value, sub, bg, accent = "#15300c", delay = 0 }: {
 }
 
 /* ─── OVERVIEW TAB ─── */
-function OverviewTab({ setTab }: { setTab: (t: TabId) => void }) {
-  const yld = useCounter(342, 2000);
+function OverviewTab({
+  setTab,
+  account,
+  walletAddress,
+  onConnect,
+}: {
+  setTab: (t: TabId) => void;
+  account: LuckyPoolAccountData;
+  walletAddress: string | null;
+  onConnect: () => void;
+}) {
+  const principal = account.position ? stroopsToUsdc(account.position.principal) : 0;
+  const tickets = account.position ? Number(account.position.tickets) : 0;
+  const prizePool = account.poolState ? stroopsToUsdc(account.poolState.prizePool) : 0;
+
   return (
     <div className="flex flex-col gap-6">
+      {!account.configured && (
+        <div className="rounded-[16px] border border-[#15300c]/15 bg-[#FFE59E]/40 px-4 py-3 text-[13px] font-[600] text-[#15300c]">
+          Testnet contract not deployed yet — figures below will populate once `NEXT_PUBLIC_LUCKYPOOL_CONTRACT_ID` is set.
+        </div>
+      )}
+      {account.configured && !walletAddress && (
+        <div className="rounded-[16px] border border-[#15300c]/15 bg-white px-4 py-3 text-[13px] font-[600] text-[#15300c] flex items-center justify-between gap-3 flex-wrap" style={{ boxShadow: HARD_SM }}>
+          <span>Connect your wallet to see your live position.</span>
+          <button onClick={onConnect} className="rounded-full bg-[#15300c] px-4 py-1.5 text-[12px] font-[700] text-[#f7fcf2]">Connect Freighter</button>
+        </div>
+      )}
+      {account.error && (
+        <div className="rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-[13px] font-[600] text-red-600">
+          {account.error}
+        </div>
+      )}
+
       {/* balance hero */}
       <motion.div
         className="rounded-[24px] p-8 text-[#f7fcf2]"
@@ -100,7 +114,7 @@ function OverviewTab({ setTab }: { setTab: (t: TabId) => void }) {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#CAFFB8]">Your balance</div>
-            <div className="mt-1 text-[52px] font-[800] leading-none tabular-nums" style={DISPLAY}>${DEPOSIT.toLocaleString()}.00</div>
+            <div className="mt-1 text-[52px] font-[800] leading-none tabular-nums" style={DISPLAY}>${principal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             <div className="mt-1.5 font-mono text-[12px] text-[#cfe9c2]">USDC · principal always safe</div>
           </div>
           <div className="flex flex-col items-end gap-3">
@@ -110,7 +124,7 @@ function OverviewTab({ setTab }: { setTab: (t: TabId) => void }) {
             </div>
             <div className="text-right">
               <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#CAFFB8]/70">All-time yield</div>
-              <div className="text-[24px] font-[800] tabular-nums text-[#CAFFB8]" style={DISPLAY}>+${(yld / 100).toFixed(2)}</div>
+              <div className="text-[16px] font-[700] text-[#CAFFB8]/80">Live once Blend ships</div>
             </div>
           </div>
         </div>
@@ -118,17 +132,17 @@ function OverviewTab({ setTab }: { setTab: (t: TabId) => void }) {
 
       {/* 4 stat cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Deposited"   value="$500"    sub="your principal" bg="#CAFFB8" accent="#15300c" delay={0.05} />
-        <StatCard label="Yield APY"   value="6.8%"    sub="via Blend"      bg="#C9B8FF" accent="#15300c" delay={0.10} />
-        <StatCard label="Your Tickets" value="500"    sub="this week"      bg="#FFE59E" accent="#15300c" delay={0.15} />
-        <StatCard label="Prize Pool"  value="$12,847" sub="current draw"   bg="#FF9E7A" accent="#15300c" delay={0.20} />
+        <StatCard label="Deposited"   value={`$${principal.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}    sub="your principal" bg="#CAFFB8" accent="#15300c" delay={0.05} />
+        <StatCard label="Yield APY"   value="6.8%"    sub="via Blend (target)"      bg="#C9B8FF" accent="#15300c" delay={0.10} />
+        <StatCard label="Your Tickets" value={tickets.toLocaleString()}    sub="this week"      bg="#FFE59E" accent="#15300c" delay={0.15} />
+        <StatCard label="Prize Pool"  value={`$${prizePool.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} sub="current draw"   bg="#FF9E7A" accent="#15300c" delay={0.20} />
       </div>
 
       {/* quick nav */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {[
-          { title: "Yield Dashboard", sub: `+$${(yld/100).toFixed(2)} earned · 6.8% APY · +$0.09 today`, tab: "yield" as TabId },
-          { title: "Weekly Lottery",  sub: "$12,847 prize pool · draw in 47h · 3.3% win odds",            tab: "lottery" as TabId },
+          { title: "Yield Dashboard", sub: "Deposit/withdraw and yield tracking · 6.8% target APY", tab: "yield" as TabId },
+          { title: "Weekly Lottery",  sub: `$${prizePool.toLocaleString(undefined, { maximumFractionDigits: 0 })} prize pool · round ${account.poolState?.currentRound ?? "—"}`, tab: "lottery" as TabId },
         ].map((c) => (
           <motion.div
             key={c.tab}
@@ -160,9 +174,9 @@ function OverviewTab({ setTab }: { setTab: (t: TabId) => void }) {
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#CAFFB8]">Increase Your Odds</div>
             <div className="mt-1 text-[15px] text-[#f7fcf2]/70">Deposit more USDC → more tickets → better chances</div>
           </div>
-          <a href="/" className="shrink-0 rounded-full bg-[#CAFFB8] px-6 py-2.5 text-[13px] font-[700] text-[#15300c] transition-transform hover:-translate-y-0.5" style={{ textDecoration: "none" }}>
+          <button onClick={() => setTab("yield")} className="shrink-0 rounded-full bg-[#CAFFB8] px-6 py-2.5 text-[13px] font-[700] text-[#15300c] transition-transform hover:-translate-y-0.5">
             Deposit More ↗
-          </a>
+          </button>
         </div>
       </motion.div>
     </div>
@@ -170,9 +184,55 @@ function OverviewTab({ setTab }: { setTab: (t: TabId) => void }) {
 }
 
 /* ─── YIELD TAB ─── */
-function YieldTab() {
-  const earned = useCounter(342, 2000);
+function YieldTab({
+  account,
+  walletAddress,
+  onConnect,
+}: {
+  account: LuckyPoolAccountData;
+  walletAddress: string | null;
+  onConnect: () => void;
+}) {
+  const principal = account.position ? stroopsToUsdc(account.position.principal) : 0;
   const maxBar = Math.max(...YIELD_HISTORY.map((r) => r.earned));
+
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositPending, setDepositPending] = useState(false);
+  const [depositError, setDepositError] = useState<string | null>(null);
+  const [withdrawPending, setWithdrawPending] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+
+  const handleDeposit = async () => {
+    if (!walletAddress) { onConnect(); return; }
+    const amount = parseFloat(depositAmount) || 0;
+    if (amount <= 0) { setDepositError("Enter an amount greater than 0"); return; }
+    setDepositPending(true);
+    setDepositError(null);
+    try {
+      await depositTx(walletAddress, amount);
+      setDepositAmount("");
+      account.refresh();
+    } catch (err) {
+      setDepositError(err instanceof Error ? err.message : "Deposit failed");
+    } finally {
+      setDepositPending(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!walletAddress) { onConnect(); return; }
+    if (principal <= 0) { setWithdrawError("Nothing to withdraw"); return; }
+    setWithdrawPending(true);
+    setWithdrawError(null);
+    try {
+      await withdrawTx(walletAddress, principal);
+      account.refresh();
+    } catch (err) {
+      setWithdrawError(err instanceof Error ? err.message : "Withdraw failed");
+    } finally {
+      setWithdrawPending(false);
+    }
+  };
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
@@ -188,13 +248,13 @@ function YieldTab() {
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#15300c]/70">Total Deposited</div>
             <span className="rounded-full bg-[#15300c] px-3 py-1 font-mono text-[10px] text-[#f7fcf2] uppercase tracking-[0.1em]">USDC</span>
           </div>
-          <div className="mt-2 text-[44px] font-[800] leading-none text-[#15300c]" style={DISPLAY}>${DEPOSIT.toLocaleString()}.00</div>
+          <div className="mt-2 text-[44px] font-[800] leading-none text-[#15300c]" style={DISPLAY}>${principal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           <div className="mt-2 flex items-center gap-2 text-[13px] font-[600] text-[#3d7a29]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#3d7a29]" /> Principal always protected
           </div>
           <div className="mt-6 border-t border-[#15300c]/15 pt-6">
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#15300c]/70">Yield Earned (all time)</div>
-            <div className="mt-1 text-[28px] font-[800] text-[#3d7a29]" style={DISPLAY}>${(earned / 100).toFixed(2)} USDC</div>
+            <div className="mt-1 text-[15px] font-[700] text-[#3d7a29]/80">Live once Blend integration ships</div>
           </div>
         </motion.div>
 
@@ -278,10 +338,22 @@ function YieldTab() {
           <div className="flex gap-2">
             <input
               placeholder="Amount"
+              type="number"
+              min="0"
+              step="0.01"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
               className="flex-1 rounded-full border border-[#15300c]/20 bg-[#fafdf8] px-4 py-2.5 text-[14px] text-[#15300c] outline-none focus:border-[#3d7a29]"
             />
-            <button className="shrink-0 rounded-full bg-[#15300c] px-5 py-2.5 text-[13px] font-[700] text-[#f7fcf2]">Deposit</button>
+            <button
+              onClick={handleDeposit}
+              disabled={depositPending}
+              className="shrink-0 rounded-full bg-[#15300c] px-5 py-2.5 text-[13px] font-[700] text-[#f7fcf2] disabled:opacity-50"
+            >
+              {!walletAddress ? "Connect Wallet" : depositPending ? "Depositing…" : "Deposit"}
+            </button>
           </div>
+          {depositError && <div className="mt-2 text-[11px] font-[600] text-red-600">{depositError}</div>}
         </motion.div>
         <motion.div
           className="rounded-[20px] bg-white p-5"
@@ -291,9 +363,14 @@ function YieldTab() {
           transition={{ duration: 0.4, delay: 0.3 }}
         >
           <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.22em] text-[#15300c]/60">Withdraw</div>
-          <button className="w-full rounded-full border-2 border-[#15300c] py-2.5 text-[13px] font-[700] text-[#15300c] transition-colors hover:bg-[#15300c] hover:text-[#f7fcf2]">
-            Withdraw USDC ↗
+          <button
+            onClick={handleWithdraw}
+            disabled={withdrawPending}
+            className="w-full rounded-full border-2 border-[#15300c] py-2.5 text-[13px] font-[700] text-[#15300c] transition-colors hover:bg-[#15300c] hover:text-[#f7fcf2] disabled:opacity-50"
+          >
+            {!walletAddress ? "Connect Wallet" : withdrawPending ? "Withdrawing…" : `Withdraw All ($${principal.toFixed(2)}) ↗`}
           </button>
+          {withdrawError && <div className="mt-2 text-[11px] font-[600] text-red-600">{withdrawError}</div>}
         </motion.div>
       </div>
     </div>
@@ -301,8 +378,10 @@ function YieldTab() {
 }
 
 /* ─── LOTTERY TAB ─── */
-function LotteryTab() {
-  const prize = useCounter(PRIZE_POOL, 2000);
+function LotteryTab({ account }: { account: LuckyPoolAccountData }) {
+  const prizePoolUsdc = account.poolState ? stroopsToUsdc(account.poolState.prizePool) : 0;
+  const tickets = account.position ? Number(account.position.tickets) : 0;
+  const prize = useCounter(Math.round(prizePoolUsdc), 2000);
   const [hrs, setHrs] = useState(47);
   const [mins, setMins] = useState(23);
   const [secs, setSecs] = useState(0);
@@ -315,7 +394,7 @@ function LotteryTab() {
     }, 1000);
     return () => clearInterval(t);
   }, []);
-  const winChance = ((TICKETS / 15000) * 100).toFixed(1);
+  const winChance = ((tickets / 15000) * 100).toFixed(1);
 
   return (
     <div className="flex flex-col gap-6">
@@ -368,7 +447,7 @@ function LotteryTab() {
             <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#15300c]/70">Your Tickets</div>
             <span className="rounded-full bg-[#15300c] px-3 py-1 font-mono text-[10px] text-[#f7fcf2] uppercase">This Week</span>
           </div>
-          <div className="text-[44px] font-[800] leading-none text-[#15300c]" style={DISPLAY}>{TICKETS.toLocaleString()}</div>
+          <div className="text-[44px] font-[800] leading-none text-[#15300c]" style={DISPLAY}>{tickets.toLocaleString()}</div>
           <div className="mt-2 text-[12px] text-[#15300c]/60">1 USDC deposited = 1 ticket per week</div>
           <div className="mt-4 h-1.5 w-full rounded-full bg-[#15300c]/15">
             <motion.div
@@ -392,7 +471,7 @@ function LotteryTab() {
         >
           <div className="mb-4 font-mono text-[11px] uppercase tracking-[0.22em] text-[#15300c]/60">Win Probability</div>
           <div className="text-[44px] font-[800] leading-none text-[#15300c]" style={DISPLAY}>{winChance}%</div>
-          <div className="mt-2 text-[12px] text-[#15300c]/60">based on {TICKETS} / 15,000 tickets</div>
+          <div className="mt-2 text-[12px] text-[#15300c]/60">based on {tickets} / 15,000 tickets</div>
           <div className="mt-4 rounded-[12px] bg-[#f1f5ee] p-3 text-[13px] text-[#15300c]/70">
             Deposit <span className="font-[700] text-[#3d7a29]">+100 USDC</span> to raise your odds to <span className="font-[700] text-[#15300c]">4.0%</span>
           </div>
@@ -414,70 +493,94 @@ function LotteryTab() {
             <span className="font-mono text-[10px] text-[#3d7a29]">Live draw history</span>
           </div>
         </div>
-        <div className="flex flex-col divide-y divide-[#f0f0f0]">
-          {WINNERS.map((w) => (
-            <div key={w.name} className="flex items-center justify-between py-3.5">
-              <div className="flex items-center gap-3">
-                <span className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full bg-[#CAFFB8] text-[14px] font-[800] text-[#15300c]" style={DISPLAY}>
-                  {w.name[0]}
-                </span>
-                <div>
-                  <div className="text-[14px] font-[700] text-[#15300c]">{w.name}</div>
-                  <div className="font-mono text-[11px] text-[#15300c]/50">{w.tickets} tickets · {w.when}</div>
+        {account.recentRounds.length === 0 ? (
+          <div className="py-6 text-center text-[13px] text-[#15300c]/50">
+            {account.configured ? "No draws completed yet." : "Testnet contract not deployed yet."}
+          </div>
+        ) : (
+          <div className="flex flex-col divide-y divide-[#f0f0f0]">
+            {account.recentRounds.map((r) => (
+              <div key={r.round} className="flex items-center justify-between py-3.5">
+                <div className="flex items-center gap-3">
+                  <span className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full bg-[#CAFFB8] text-[14px] font-[800] text-[#15300c]" style={DISPLAY}>
+                    {r.winner.slice(1, 2)}
+                  </span>
+                  <div>
+                    <div className="text-[14px] font-[700] text-[#15300c] font-mono">{r.winner.slice(0, 6)}…{r.winner.slice(-4)}</div>
+                    <div className="font-mono text-[11px] text-[#15300c]/50">{r.totalTickets.toString()} tickets · Round {r.round}</div>
+                  </div>
                 </div>
+                <span className="rounded-full bg-[#CAFFB8] px-3 py-1.5 text-[13px] font-[700] text-[#15300c]">+${stroopsToUsdc(r.prize).toFixed(2)} USDC</span>
               </div>
-              <span className="rounded-full bg-[#CAFFB8] px-3 py-1.5 text-[13px] font-[700] text-[#15300c]">+${w.amount} USDC</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </motion.div>
     </div>
   );
 }
 
 /* ─── HISTORY TAB ─── */
-function HistoryTab() {
+function HistoryTab({ account, walletAddress }: { account: LuckyPoolAccountData; walletAddress: string | null }) {
+  const totalIn = account.history
+    .filter((tx) => tx.type === "Deposit")
+    .reduce((sum, tx) => sum + stroopsToUsdc(tx.amount), 0);
+
   return (
     <div className="flex flex-col gap-6">
+      {!walletAddress && (
+        <div className="rounded-[16px] border border-[#15300c]/15 bg-white px-4 py-3 text-[13px] font-[600] text-[#15300c]" style={{ boxShadow: HARD_SM }}>
+          Connect your wallet to see your transaction history.
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-4">
         {[
-          { l: "Total In",     v: "$500.00", c: "#15300c" },
-          { l: "Yield Earned", v: "+$1.64",  c: "#3d7a29" },
-          { l: "Transactions", v: "4",        c: "#15300c" },
+          { l: "Total In",     v: `$${totalIn.toFixed(2)}`, c: "#15300c" },
+          { l: "Yield Earned", v: "Pending Blend",           c: "#3d7a29" },
+          { l: "Transactions", v: String(account.history.length), c: "#15300c" },
         ].map((s) => (
           <div key={s.l} className="rounded-[20px] bg-[#CAFFB8] p-5" style={{ boxShadow: HARD_SM }}>
             <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#15300c]/70">{s.l}</div>
-            <div className="mt-2 text-[28px] font-[800] leading-none" style={{ ...DISPLAY, color: s.c }}>{s.v}</div>
+            <div className="mt-2 text-[22px] font-[800] leading-none" style={{ ...DISPLAY, color: s.c }}>{s.v}</div>
           </div>
         ))}
       </div>
 
       <div className="rounded-[20px] bg-white p-6" style={{ boxShadow: HARD }}>
         <div className="mb-5 font-mono text-[11px] uppercase tracking-[0.22em] text-[#15300c]/60">All Transactions</div>
-        <div className="flex flex-col divide-y divide-[#f0f0f0]">
-          {TX_HISTORY.map((tx, i) => (
-            <div key={i} className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                <span
-                  className="rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em]"
-                  style={{
-                    background: tx.type === "Deposit" ? "#15300c" : "#CAFFB8",
-                    color: tx.type === "Deposit" ? "#f7fcf2" : "#15300c",
-                  }}
-                >
-                  {tx.type}
-                </span>
-                <div>
-                  <div className="text-[13px] font-[700] text-[#15300c]">{tx.date}</div>
-                  <div className="font-mono text-[11px] text-[#15300c]/50">{tx.status}</div>
+        {account.history.length === 0 ? (
+          <div className="py-6 text-center text-[13px] text-[#15300c]/50">
+            {!account.configured ? "Testnet contract not deployed yet." : !walletAddress ? "No wallet connected." : "No transactions yet."}
+          </div>
+        ) : (
+          <div className="flex flex-col divide-y divide-[#f0f0f0]">
+            {account.history.map((tx) => (
+              <div key={tx.txHash} className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em]"
+                    style={{
+                      background: tx.type === "Deposit" ? "#15300c" : "#CAFFB8",
+                      color: tx.type === "Deposit" ? "#f7fcf2" : "#15300c",
+                    }}
+                  >
+                    {tx.type}
+                  </span>
+                  <div>
+                    <div className="text-[13px] font-[700] text-[#15300c]">
+                      {new Date(tx.ledgerClosedAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                    </div>
+                    <div className="font-mono text-[11px] text-[#15300c]/50">Confirmed</div>
+                  </div>
+                </div>
+                <div className="text-[15px] font-[800] text-[#15300c]" style={DISPLAY}>
+                  {tx.type === "Deposit" ? "+" : "-"}${stroopsToUsdc(tx.amount).toFixed(2)}
                 </div>
               </div>
-              <div className={`text-[15px] font-[800] ${tx.type === "Yield" ? "text-[#3d7a29]" : "text-[#15300c]"}`} style={DISPLAY}>
-                {tx.amount}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -556,6 +659,7 @@ export default function Dashboard() {
   const [tab, setTab] = useState<TabId>("overview");
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
+  const account = useLuckyPoolAccount(walletAddress);
 
   // Restore existing Freighter connection on mount
   useEffect(() => {
@@ -578,10 +682,10 @@ export default function Dashboard() {
   }, []);
 
   const content: Record<TabId, React.ReactNode> = {
-    overview: <OverviewTab setTab={setTab} />,
-    yield:    <YieldTab />,
-    lottery:  <LotteryTab />,
-    history:  <HistoryTab />,
+    overview: <OverviewTab setTab={setTab} account={account} walletAddress={walletAddress} onConnect={handleConnect} />,
+    yield:    <YieldTab account={account} walletAddress={walletAddress} onConnect={handleConnect} />,
+    lottery:  <LotteryTab account={account} />,
+    history:  <HistoryTab account={account} walletAddress={walletAddress} />,
     settings: <SettingsTab walletAddress={walletAddress} onConnect={handleConnect} onDisconnect={handleDisconnect} />,
   };
 
@@ -668,13 +772,12 @@ export default function Dashboard() {
           <div className="text-[20px] font-[800] tracking-[-0.02em]" style={DISPLAY}>{TAB_LABEL[tab]}</div>
           <div className="flex items-center gap-3">
             {walletAddress ? (
-              <a
-                href="/"
+              <button
+                onClick={() => setTab("yield")}
                 className="hidden md:inline-flex rounded-full bg-[#15300c] px-5 py-2 text-[13px] font-[700] text-[#f7fcf2] transition-transform hover:-translate-y-0.5"
-                style={{ textDecoration: "none" }}
               >
                 Deposit More
-              </a>
+              </button>
             ) : (
               <button
                 onClick={handleConnect}

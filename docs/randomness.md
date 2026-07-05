@@ -28,25 +28,27 @@ The contract receives both, verifies the proof on-chain, and uses the output as 
 
 ## VRF Options
 
-### Option A — Stellar Oracle Shield (Recommended)
+> **Status (unresolved as of this writing):** neither option below has been confirmed as a real, integratable provider. "Stellar Oracle Shield" does not appear to be a documented, existing product — no repo, docs, or third-party mentions were found. Acurast has no publicly documented Soroban VRF interface. Proof verification is blocked on picking a real provider; see `plan.md` for the open decision. Do not treat "Recommended" below as a confirmed integration target.
 
-- Native to the Stellar ecosystem
-- Provides VRF-as-a-service via oracle contract calls
-- Proof is posted on-chain and verifiable inside the Soroban contract
-- Low latency (~1–2 ledger confirmations, ~5–10 seconds)
+### Option A — Stellar Oracle Shield (tentative, unverified)
 
-Integration:
+- Would be native to the Stellar ecosystem
+- Would provide VRF-as-a-service via oracle contract calls
+- Proof would be posted on-chain and verifiable inside the Soroban contract
+- Low latency (~1–2 ledger confirmations, ~5–10 seconds) — if it exists
+
+Integration (as designed, pending a confirmed provider):
 1. LuckyPool calls `oracle.request_vrf(round_seed)` on the Oracle Shield contract
 2. Oracle Shield off-chain node generates VRF output + proof
 3. Oracle posts both back to Stellar in a separate transaction
 4. LuckyPool's `execute_draw()` reads the VRF response, verifies the proof, computes winner
 
-### Option B — Acurast
+### Option B — Acurast (undocumented Soroban VRF interface)
 
 - Decentralised compute network with Trusted Execution Environments (TEEs)
-- Cross-chain VRF service with Stellar integration
+- Cross-chain VRF service, but no documented Soroban-specific VRF interface yet
 - Higher decentralisation — no single oracle operator
-- Slightly higher latency than Oracle Shield
+- Slightly higher latency than Option A, if/when a Soroban interface exists
 
 ### Option C — Commit-Reveal (Fallback — no external oracle needed)
 

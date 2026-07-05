@@ -17,8 +17,9 @@ LuckyPool is a single Soroban contract written in Rust. The contract manages dep
 # Rust (stable)
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# WASM build target
-rustup target add wasm32-unknown-unknown
+# WASM build target — soroban-sdk 26 requires wasm32v1-none on Rust 1.84+,
+# not wasm32-unknown-unknown
+rustup target add wasm32v1-none
 
 # Stellar CLI (build, optimize, deploy)
 cargo install --locked stellar-cli
@@ -194,7 +195,7 @@ make optimize
 make fmt && make clippy
 ```
 
-**Output:** `target/wasm32-unknown-unknown/release/lucky_pool.wasm` (~23KB unoptimized)
+**Output:** `target/wasm32v1-none/release/lucky_pool.wasm` (~23KB unoptimized)
 
 ---
 

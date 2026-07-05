@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Env, Vec};
+use soroban_sdk::{contracttype, Address, BytesN, Env, Vec};
 
 // ─── Data types ─────────────────────────────────────────────────────────────
 
@@ -37,6 +37,11 @@ pub struct PoolState {
     pub protocol_fee_bps: u32,
     /// When paused, new deposits are blocked; withdrawals always open.
     pub paused: bool,
+    /// True between `request_draw()` and `execute_draw()` for the current round.
+    pub draw_requested: bool,
+    /// Public input the VRF output for the pending draw must correspond to.
+    /// Only meaningful while `draw_requested` is true.
+    pub round_seed: BytesN<32>,
 }
 
 /// Immutable record written after each draw.

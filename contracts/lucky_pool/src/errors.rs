@@ -13,4 +13,7 @@ pub enum LuckyPoolError {
     InvalidAmount       = 7,
     NoDepositors        = 8,
     FeeTooHigh          = 9,
+    DrawAlreadyRequested = 10,
+    DrawNotRequested     = 11,
+    NoTickets            = 12,
 }

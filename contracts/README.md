@@ -31,7 +31,9 @@ Winner receives prize USDC · Everyone else: principal untouched
 | `lucky_pool/src/lib.rs` | Contract entry point — all public functions |
 | `lucky_pool/src/storage.rs` | Data types (`UserPosition`, `PoolState`, `RoundResult`) and read/write helpers |
 | `lucky_pool/src/errors.rs` | Typed contract errors via `#[contracterror]` |
-| `lucky_pool/src/test.rs` | 17 unit tests covering all flows |
+| `lucky_pool/src/blend.rs` | Minimal client bindings for the Blend v2 Pool contract (verified against blend-contracts-v2 source) |
+| `lucky_pool/src/test.rs` | 20 unit tests covering all flows |
+| `lucky_pool/src/test_blend.rs` | Mock Blend pool contract used by tests |
 
 ---
 
@@ -55,7 +57,10 @@ Winner receives prize USDC · Everyone else: principal untouched
 
 | Function | Auth | Description |
 |---|---|---|
-| `execute_draw(winner)` | admin | Pay winner minus fee, advance round. Will be VRF-backed in v2 |
+| `request_draw()` | anyone | Opens the draw for the current round; computes and emits the public `round_seed` a VRF output must correspond to |
+| `execute_draw(vrf_output, vrf_proof)` | admin* | Selects the winner from `vrf_output` weighted by ticket count, pays out minus fee, advances round |
+
+\* `execute_draw` is temporarily admin-gated: `vrf_proof` is accepted but not yet verified against `round_seed` (no VRF oracle with a concrete, verifiable on-chain interface has been selected — see `docs/randomness.md`). Until that lands, `vrf_output` is effectively admin-supplied, not yet provably fair — do not treat this as production-ready randomness.
 
 ### Admin
 
@@ -122,6 +127,8 @@ All events are typed via `#[contractevent]` (soroban-sdk 26+).
 | `Deposited` | `["LuckyPool", "deposit"]` | `{ user, amount, round }` |
 | `Withdrawn` | `["LuckyPool", "withdraw"]` | `{ user, amount }` |
 | `PrizeFunded` | `["LuckyPool", "fund"]` | `{ from, amount }` |
+| `YieldHarvested` | `["LuckyPool", "harvest"]` | `{ amount }` |
+| `DrawRequested` | `["LuckyPool", "request_draw"]` | `{ round, round_seed }` |
 | `DrawCompleted` | `["LuckyPool", "draw"]` | `{ round, winner, prize }` |
 
 ---
@@ -130,7 +137,9 @@ All events are typed via `#[contractevent]` (soroban-sdk 26+).
 
 ```bash
 # Rust (stable) + WASM target
-rustup target add wasm32-unknown-unknown
+# soroban-sdk 26 requires wasm32v1-none on Rust 1.84+ — wasm32-unknown-unknown
+# only works on Rust ≤1.81 (newer rustc enables features Soroban doesn't support yet).
+rustup target add wasm32v1-none
 
 # Stellar CLI (for build / deploy)
 cargo install --locked stellar-cli

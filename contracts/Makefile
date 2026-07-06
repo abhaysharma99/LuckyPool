@@ -13,8 +13,9 @@ build:
 	stellar contract build
 
 # Fallback if stellar CLI is not yet installed
+# wasm32v1-none, not wasm32-unknown-unknown — see contracts/README.md Prerequisites.
 build-cargo:
-	cargo build --target wasm32-unknown-unknown --release
+	cargo build --target wasm32v1-none --release
 
 optimize: build
 	stellar contract optimize \
@@ -34,7 +35,7 @@ fmt:
 	cargo fmt --all
 
 clippy:
-	cargo clippy --target wasm32-unknown-unknown -- -D warnings
+	cargo clippy --target wasm32v1-none -- -D warnings
 
 # ── Deploy (testnet) ─────────────────────────────────────────────────────────
 # Required env vars: SOURCE, ADMIN, USDC_ID, BLEND_ID, ORACLE_ID, FEE_BPS

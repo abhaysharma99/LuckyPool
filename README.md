@@ -140,13 +140,14 @@ See [`contracts/README.md`](contracts/README.md) for the full contract interface
 
 | Component | Status |
 |---|---|
-| Soroban contract — core flow | ✅ Built and tested (17/17 tests pass) |
+| Soroban contract — core flow | ✅ Built and tested (20/20 tests pass) |
 | Typed events (`#[contractevent]`) | ✅ Implemented |
-| Frontend landing page | ✅ Live |
-| Dashboard (deposit / withdraw / lottery) | ✅ UI complete, mocked data |
+| Frontend landing page | ✅ Live, deposit form wired to wallet + contract |
+| Dashboard (deposit / withdraw / lottery) | ✅ Wired to live contract reads/writes |
 | Freighter wallet integration | ✅ Connect / disconnect wired |
-| Blend yield integration | 🔧 Stubbed — cross-contract calls next |
-| VRF oracle integration | 🔧 Stubbed — admin draw until VRF is wired |
+| DrawEngine SDK | ✅ Real Soroban RPC wiring |
+| Blend yield integration | ✅ Implemented against verified Blend v2 interface — untested against a real deployed pool |
+| VRF oracle integration | 🔧 Draw flow + winner selection real and tested; proof verification pending a confirmed VRF provider (see `docs/plan.md`) |
 | Testnet deployment | 📋 Pending |
 | Security audit | 📋 Pre-mainnet |
 

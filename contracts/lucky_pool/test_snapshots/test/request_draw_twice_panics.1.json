@@ -170,15 +170,15 @@
     ],
     [
       [
-        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
         {
           "function": {
             "contract_fn": {
               "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM",
-              "function_name": "deposit",
+              "function_name": "fund_prize_pool",
               "args": [
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                 },
                 {
                   "i128": "500000000"
@@ -194,7 +194,7 @@
                   "function_name": "transfer",
                   "args": [
                     {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
@@ -211,6 +211,7 @@
         }
       ]
     ],
+    [],
     []
   ],
   "ledger": {
@@ -350,10 +351,10 @@
           "data": {
             "contract_data": {
               "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
               "key": {
                 "ledger_key_nonce": {
-                  "nonce": "4270020994084947596"
+                  "nonce": "8370022561469687789"
                 }
               },
               "durability": "temporary",
@@ -373,7 +374,7 @@
               "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": {
                 "ledger_key_nonce": {
-                  "nonce": "8370022561469687789"
+                  "nonce": "4270020994084947596"
                 }
               },
               "durability": "temporary",
@@ -451,7 +452,7 @@
                                     "u32": 0
                                   },
                                   "val": {
-                                    "i128": "1500000000"
+                                    "i128": "1000000000"
                                   }
                                 }
                               ]
@@ -506,7 +507,7 @@
                       "symbol": "principal"
                     },
                     "val": {
-                      "i128": "1500000000"
+                      "i128": "1000000000"
                     }
                   },
                   {
@@ -522,7 +523,7 @@
                       "symbol": "tickets"
                     },
                     "val": {
-                      "i128": "150"
+                      "i128": "100"
                     }
                   }
                 ]
@@ -603,7 +604,7 @@
                               "symbol": "draw_requested"
                             },
                             "val": {
-                              "bool": false
+                              "bool": true
                             }
                           },
                           {
@@ -635,7 +636,7 @@
                               "symbol": "prize_pool"
                             },
                             "val": {
-                              "i128": "0"
+                              "i128": "500000000"
                             }
                           },
                           {
@@ -651,7 +652,7 @@
                               "symbol": "round_seed"
                             },
                             "val": {
-                              "bytes": "0000000000000000000000000000000000000000000000000000000000000000"
+                              "bytes": "cd2662154e6d76b2b2b92e70c0cac3ccf534f9b74eb5b89819ec509083d00a50"
                             }
                           },
                           {
@@ -659,7 +660,7 @@
                               "symbol": "total_deposits"
                             },
                             "val": {
-                              "i128": "1500000000"
+                              "i128": "1000000000"
                             }
                           },
                           {
@@ -768,7 +769,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "10000000000"
+                      "i128": "9500000000"
                     }
                   },
                   {
@@ -820,7 +821,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "8500000000"
+                      "i128": "9000000000"
                     }
                   },
                   {
@@ -924,7 +925,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "1500000000"
+                      "i128": "1000000000"
                     }
                   },
                   {
@@ -976,7 +977,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "0"
+                      "i128": "500000000"
                     }
                   },
                   {

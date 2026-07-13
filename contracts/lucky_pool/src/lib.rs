@@ -129,7 +129,7 @@ impl LuckyPool {
 
         // Pull USDC from user → contract.
         let token_client = token::Client::new(&env, &state.usdc);
-        token_client.transfer(&user, &env.current_contract_address(), &amount);
+        token_client.transfer(&user, env.current_contract_address(), &amount);
 
         // Forward into Blend for yield: approve the pool to pull `amount`,
         // then submit_with_allowance so Blend uses transfer_from against
@@ -230,7 +230,7 @@ impl LuckyPool {
             // Remove from depositors list so they aren't eligible this round.
             let mut depositors = read_depositors(&env);
             if let Some(idx) = depositors.first_index_of(&user) {
-                depositors.remove(idx as u32);
+                depositors.remove(idx);
             }
             write_depositors(&env, &depositors);
         }
@@ -299,7 +299,7 @@ impl LuckyPool {
 
         let mut state = read_pool_state(&env);
         let token_client = token::Client::new(&env, &state.usdc);
-        token_client.transfer(&from, &env.current_contract_address(), &amount);
+        token_client.transfer(&from, env.current_contract_address(), &amount);
 
         state.prize_pool += amount;
         write_pool_state(&env, &state);

@@ -3,7 +3,7 @@
 use super::*;
 use crate::test_blend::MockBlendPool;
 use soroban_sdk::{
-    testutils::{Address as _, Ledger},
+    testutils::Address as _,
     token::{Client as TokenClient, StellarAssetClient},
     Address, Bytes, BytesN, Env,
 };

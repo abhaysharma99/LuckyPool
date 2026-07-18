@@ -23,13 +23,6 @@ export function Navigation() {
         <a href="/" style={{ textDecoration: "none" }}>
           <Logo size={26} showText />
         </a>
-        <a
-          href="/dashboard"
-          className="rounded-full bg-[#15300c] px-5 py-2 text-[14px] font-semibold text-[#f7fcf2] transition-transform hover:-translate-y-0.5"
-          style={{ textDecoration: "none" }}
-        >
-          Launch App
-        </a>
       </motion.div>
 
       {/* Floating pill nav */}
@@ -51,13 +44,6 @@ export function Navigation() {
             </a>
           ))}
         </div>
-        <a
-          href="/dashboard"
-          className="rounded-full bg-[#15300c] px-5 py-2 text-[14px] font-semibold text-[#f7fcf2] sm:ml-1"
-          style={{ textDecoration: "none" }}
-        >
-          Launch App
-        </a>
       </motion.nav>
     </>
   );

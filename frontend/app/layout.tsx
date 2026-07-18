@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Hanken_Grotesk, DM_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body style={{ fontFamily: "var(--font-sans), DM Sans, system-ui, sans-serif", color: "#15300c", background: "#fafdf8" }}>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );

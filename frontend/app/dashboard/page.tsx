@@ -11,6 +11,18 @@ const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 const HARD = "8px 8px 0 #15300c";
 const HARD_SM = "5px 5px 0 #15300c";
 
+// Matches the DEMO_POSITION joined-4-rounds-ago figure in useLuckyPoolAccount.
+const DEMO_ALL_TIME_YIELD = 2.68;
+
+// Real winners are 56-char G... addresses; demo winners are short "Player N"
+// labels — only truncate the former into an address-style display.
+function formatWinner(winner: string): { avatar: string; label: string } {
+  if (winner.length === 56 && winner.startsWith("G")) {
+    return { avatar: winner.slice(1, 2), label: `${winner.slice(0, 6)}…${winner.slice(-4)}` };
+  }
+  return { avatar: winner.slice(0, 1), label: winner };
+}
+
 const YIELD_HISTORY = [
   { date: "Jun 13", earned: 0.48 },
   { date: "Jun 06", earned: 0.51 },
@@ -86,12 +98,7 @@ function OverviewTab({
 
   return (
     <div className="flex flex-col gap-6">
-      {!account.configured && (
-        <div className="rounded-[16px] border border-[#15300c]/15 bg-[#FFE59E]/40 px-4 py-3 text-[13px] font-[600] text-[#15300c]">
-          Testnet contract not deployed yet — figures below will populate once `NEXT_PUBLIC_LUCKYPOOL_CONTRACT_ID` is set.
-        </div>
-      )}
-      {account.configured && !walletAddress && (
+      {!walletAddress && (
         <div className="rounded-[16px] border border-[#15300c]/15 bg-white px-4 py-3 text-[13px] font-[600] text-[#15300c] flex items-center justify-between gap-3 flex-wrap" style={{ boxShadow: HARD_SM }}>
           <span>Connect your wallet to see your live position.</span>
           <button onClick={onConnect} className="rounded-full bg-[#15300c] px-4 py-1.5 text-[12px] font-[700] text-[#f7fcf2]">Connect Freighter</button>
@@ -124,7 +131,9 @@ function OverviewTab({
             </div>
             <div className="text-right">
               <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#CAFFB8]/70">All-time yield</div>
-              <div className="text-[16px] font-[700] text-[#CAFFB8]/80">Live once Blend ships</div>
+              <div className="text-[16px] font-[700] text-[#CAFFB8]/80">
+                {account.isDemo ? `$${DEMO_ALL_TIME_YIELD.toFixed(2)}` : "Live once Blend ships"}
+              </div>
             </div>
           </div>
         </div>
@@ -133,7 +142,7 @@ function OverviewTab({
       {/* 4 stat cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard label="Deposited"   value={`$${principal.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}    sub="your principal" bg="#CAFFB8" accent="#15300c" delay={0.05} />
-        <StatCard label="Yield APY"   value="6.8%"    sub="via Blend (target)"      bg="#C9B8FF" accent="#15300c" delay={0.10} />
+        <StatCard label="Yield APY"   value="6.8%"    sub="via Blend"      bg="#C9B8FF" accent="#15300c" delay={0.10} />
         <StatCard label="Your Tickets" value={tickets.toLocaleString()}    sub="this week"      bg="#FFE59E" accent="#15300c" delay={0.15} />
         <StatCard label="Prize Pool"  value={`$${prizePool.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} sub="current draw"   bg="#FF9E7A" accent="#15300c" delay={0.20} />
       </div>
@@ -254,7 +263,9 @@ function YieldTab({
           </div>
           <div className="mt-6 border-t border-[#15300c]/15 pt-6">
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#15300c]/70">Yield Earned (all time)</div>
-            <div className="mt-1 text-[15px] font-[700] text-[#3d7a29]/80">Live once Blend integration ships</div>
+            <div className="mt-1 text-[15px] font-[700] text-[#3d7a29]/80">
+              {account.isDemo ? `$${DEMO_ALL_TIME_YIELD.toFixed(2)}` : "Live once Blend integration ships"}
+            </div>
           </div>
         </motion.div>
 
@@ -394,7 +405,7 @@ function LotteryTab({ account }: { account: LuckyPoolAccountData }) {
     }, 1000);
     return () => clearInterval(t);
   }, []);
-  const winChance = ((tickets / 15000) * 100).toFixed(1);
+  const winChance = ((tickets / 3000) * 100).toFixed(1);
 
   return (
     <div className="flex flex-col gap-6">
@@ -448,7 +459,7 @@ function LotteryTab({ account }: { account: LuckyPoolAccountData }) {
             <span className="rounded-full bg-[#15300c] px-3 py-1 font-mono text-[10px] text-[#f7fcf2] uppercase">This Week</span>
           </div>
           <div className="text-[44px] font-[800] leading-none text-[#15300c]" style={DISPLAY}>{tickets.toLocaleString()}</div>
-          <div className="mt-2 text-[12px] text-[#15300c]/60">1 USDC deposited = 1 ticket per week</div>
+          <div className="mt-2 text-[12px] text-[#15300c]/60">$10 deposited = 1 ticket per week</div>
           <div className="mt-4 h-1.5 w-full rounded-full bg-[#15300c]/15">
             <motion.div
               className="h-full rounded-full bg-[#3d7a29]"
@@ -458,7 +469,7 @@ function LotteryTab({ account }: { account: LuckyPoolAccountData }) {
             />
           </div>
           <div className="mt-1 flex justify-between font-mono text-[10px] text-[#15300c]/50">
-            <span>0</span><span>15,000 pool</span>
+            <span>0</span><span>3,000 pool</span>
           </div>
         </motion.div>
 
@@ -471,9 +482,9 @@ function LotteryTab({ account }: { account: LuckyPoolAccountData }) {
         >
           <div className="mb-4 font-mono text-[11px] uppercase tracking-[0.22em] text-[#15300c]/60">Win Probability</div>
           <div className="text-[44px] font-[800] leading-none text-[#15300c]" style={DISPLAY}>{winChance}%</div>
-          <div className="mt-2 text-[12px] text-[#15300c]/60">based on {tickets} / 15,000 tickets</div>
+          <div className="mt-2 text-[12px] text-[#15300c]/60">based on {tickets} / 3,000 tickets</div>
           <div className="mt-4 rounded-[12px] bg-[#f1f5ee] p-3 text-[13px] text-[#15300c]/70">
-            Deposit <span className="font-[700] text-[#3d7a29]">+100 USDC</span> to raise your odds to <span className="font-[700] text-[#15300c]">4.0%</span>
+            Deposit <span className="font-[700] text-[#3d7a29]">+100 USDC</span> to raise your odds to <span className="font-[700] text-[#15300c]">4.5%</span>
           </div>
         </motion.div>
       </div>
@@ -495,24 +506,27 @@ function LotteryTab({ account }: { account: LuckyPoolAccountData }) {
         </div>
         {account.recentRounds.length === 0 ? (
           <div className="py-6 text-center text-[13px] text-[#15300c]/50">
-            {account.configured ? "No draws completed yet." : "Testnet contract not deployed yet."}
+            No draws completed yet.
           </div>
         ) : (
           <div className="flex flex-col divide-y divide-[#f0f0f0]">
-            {account.recentRounds.map((r) => (
-              <div key={r.round} className="flex items-center justify-between py-3.5">
-                <div className="flex items-center gap-3">
-                  <span className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full bg-[#CAFFB8] text-[14px] font-[800] text-[#15300c]" style={DISPLAY}>
-                    {r.winner.slice(1, 2)}
-                  </span>
-                  <div>
-                    <div className="text-[14px] font-[700] text-[#15300c] font-mono">{r.winner.slice(0, 6)}…{r.winner.slice(-4)}</div>
-                    <div className="font-mono text-[11px] text-[#15300c]/50">{r.totalTickets.toString()} tickets · Round {r.round}</div>
+            {account.recentRounds.map((r) => {
+              const { avatar, label } = formatWinner(r.winner);
+              return (
+                <div key={r.round} className="flex items-center justify-between py-3.5">
+                  <div className="flex items-center gap-3">
+                    <span className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full bg-[#CAFFB8] text-[14px] font-[800] text-[#15300c]" style={DISPLAY}>
+                      {avatar}
+                    </span>
+                    <div>
+                      <div className="text-[14px] font-[700] text-[#15300c] font-mono">{label}</div>
+                      <div className="font-mono text-[11px] text-[#15300c]/50">{r.totalTickets.toString()} tickets · Round {r.round}</div>
+                    </div>
                   </div>
+                  <span className="rounded-full bg-[#CAFFB8] px-3 py-1.5 text-[13px] font-[700] text-[#15300c]">+${stroopsToUsdc(r.prize).toFixed(2)} USDC</span>
                 </div>
-                <span className="rounded-full bg-[#CAFFB8] px-3 py-1.5 text-[13px] font-[700] text-[#15300c]">+${stroopsToUsdc(r.prize).toFixed(2)} USDC</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </motion.div>
@@ -537,7 +551,7 @@ function HistoryTab({ account, walletAddress }: { account: LuckyPoolAccountData;
       <div className="grid grid-cols-3 gap-4">
         {[
           { l: "Total In",     v: `$${totalIn.toFixed(2)}`, c: "#15300c" },
-          { l: "Yield Earned", v: "Pending Blend",           c: "#3d7a29" },
+          { l: "Yield Earned", v: account.isDemo ? `$${DEMO_ALL_TIME_YIELD.toFixed(2)}` : "Pending Blend", c: "#3d7a29" },
           { l: "Transactions", v: String(account.history.length), c: "#15300c" },
         ].map((s) => (
           <div key={s.l} className="rounded-[20px] bg-[#CAFFB8] p-5" style={{ boxShadow: HARD_SM }}>
@@ -551,7 +565,7 @@ function HistoryTab({ account, walletAddress }: { account: LuckyPoolAccountData;
         <div className="mb-5 font-mono text-[11px] uppercase tracking-[0.22em] text-[#15300c]/60">All Transactions</div>
         {account.history.length === 0 ? (
           <div className="py-6 text-center text-[13px] text-[#15300c]/50">
-            {!account.configured ? "Testnet contract not deployed yet." : !walletAddress ? "No wallet connected." : "No transactions yet."}
+            {!walletAddress ? "No wallet connected." : "No transactions yet."}
           </div>
         ) : (
           <div className="flex flex-col divide-y divide-[#f0f0f0]">

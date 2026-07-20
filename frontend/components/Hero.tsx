@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 
 const DISPLAY = { fontFamily: "var(--font-display)" } as const;
@@ -117,6 +118,17 @@ export function Hero() {
           Hold USDC. Earn 6.8% APY via Blend on Stellar.
           Win the weekly prize draw. Your principal is never at risk — no loss, ever.
         </motion.p>
+
+        {/* Built on Stellar */}
+        <motion.div
+          className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#15300c]/15 bg-white/60 px-5 py-2 font-mono text-[13px] uppercase tracking-[0.2em] text-[#3d7a29]"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          Built on Stellar
+          <Image src="/stellar-mark.png" alt="Stellar" width={18} height={16} />
+        </motion.div>
 
         {/* CTAs */}
       </div>

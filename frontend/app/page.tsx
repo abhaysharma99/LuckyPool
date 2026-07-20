@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   Navigation,
   Hero,
@@ -45,8 +46,25 @@ export default function Home() {
           luckypool.
         </div>
         <div className="flex flex-col items-center gap-4 pb-32 pt-16">
-          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#3d7a29]">
-            luckypool · Built on Stellar
+          <div className="inline-flex items-center gap-3 rounded-full border border-[#15300c]/20 bg-white/60 px-4 py-1.5">
+            <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-[#3d7a29]">
+              luckypool · Built on Stellar
+              <Image src="/stellar-mark.png" alt="Stellar" width={14} height={12} />
+            </span>
+            <a
+              href="https://x.com/LuckyPoolHQ"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LuckyPool on X"
+              className="text-[#3d7a29] transition-opacity hover:opacity-70"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M4 4L20 20M20 4L4 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+            </a>
+          </div>
+          <div className="max-w-md rounded-[16px] border border-[#15300c]/15 bg-white/50 px-5 py-4 text-center text-[13px] leading-[1.6] text-[#15300c]/75">
+            Hold USDC. Earn 6.8% APY via Blend on Stellar. Win the weekly prize draw. Your principal is never at risk — no loss, ever.
           </div>
         </div>
         </section>

@@ -14,6 +14,10 @@ const MotionBox = motion(Box);
 // Target APY until Blend integration ships — see docs/plan.md step 6.
 const TARGET_APY = 0.068;
 
+// Pre-deploy preview only — matches lib/useLuckyPoolAccount's DEMO_POOL_STATE.
+const DEMO_MODE = process.env.NEXT_PUBLIC_LUCKYPOOL_DEMO === "true";
+const DEMO_PRIZE_POOL = 646.32;
+
 const QUICK_AMOUNTS = ["10", "50", "100", "500"];
 
 export function DepositSection() {
@@ -33,7 +37,10 @@ export function DepositSection() {
   }, []);
 
   useEffect(() => {
-    if (!configured) return;
+    if (!configured) {
+      if (DEMO_MODE) setPrizePool(DEMO_PRIZE_POOL);
+      return;
+    }
     getPoolState()
       .then((state) => setPrizePool(stroopsToUsdc(state.prizePool)))
       .catch(() => {});
@@ -81,11 +88,9 @@ export function DepositSection() {
 
   const buttonLabel = !walletAddress
     ? "Connect Wallet to Deposit"
-    : !configured
-      ? "Contract Not Deployed Yet"
-      : pending
-        ? "Depositing…"
-        : `Deposit ${amount || "0"} USDC`;
+    : pending
+      ? "Depositing…"
+      : `Deposit ${amount || "0"} USDC`;
 
   return (
     <Box
@@ -216,7 +221,7 @@ export function DepositSection() {
                         label: "Current prize pool",
                         val: prizePool !== null
                           ? `$${prizePool.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                          : configured ? "Loading…" : "Testnet pending",
+                          : configured ? "Loading…" : "—",
                       },
                     ].map(({ label, val }) => (
                       <Flex key={label} justify="space-between">
@@ -233,7 +238,7 @@ export function DepositSection() {
                   w="full"
                   rightIcon={<ArrowRight size={16} />}
                   onClick={handleDeposit}
-                  isDisabled={pending || (!!walletAddress && !configured)}
+                  isDisabled={pending}
                   isLoading={pending}
                 >
                   {buttonLabel}
